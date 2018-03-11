@@ -7,10 +7,10 @@ import Adafruit_DHT
 import time
 from Waveshare_Epaper_UART import *
 
-time.sleep(20)
+time.sleep(30)
 
 class DisplayAll(threading.Thread):
-    def __init__(self):  # constructor
+    def __init__(self):  
         threading.Thread.__init__(self)
         self.wdict = None
         # self.init = True
@@ -38,7 +38,7 @@ class DisplayAll(threading.Thread):
         self.show_timedate()
         self.show_weather()
         self.show_indoor_cond()
-        self.show_cntdown()
+        self.twitter_DM()
         self.book_movie()
         self.screen.update()
 
@@ -66,49 +66,41 @@ class DisplayAll(threading.Thread):
     
     def fetch_weather(self):
         json_web = urllib2.urlopen('http://api.wunderground.com/api/467046bee5094888/conditions/q/zmw:00000.40.03571.json')
-        json_str = json_web.read()         
+        json_str = json_web.read()
         self.wdict    = json.loads(json_str)  
 
     def show_weather(self):
 
         self.screen.text(20, 220,'Cambridge')  # Location
         
-        # json_web = urllib2.urlopen('http://api.wunderground.com/api/467046bee5094888/conditions/q/zmw:00000.40.03571.json')
-        # json_str = json_web.read()         
-        # wdict    = json.loads(json_str)  
         
         temp = self.wdict['current_observation']['temp_c']
         temp = str(temp)
         humi = self.wdict['current_observation']['relative_humidity']
-        cw   = self.wdict['current_observation']['weather']
-        
-        self.screen.text(20, 460, cw)
+        cw_f = self.wdict['current_observation']['weather']
+        cw   = cw_f.split()[1]
+        self.screen.text(40, 460, cw)
         self.screen.text(1, 530, temp + '℃')
         self.screen.text(140, 530, humi)
     
-        # w_bmp = {'Clear': 'WQING.BMP', '阴': 'WYIN.BMP', 'Mostly Cloudy': 'WDYZQ.BMP', 'Partly Cloudy': 'WDYZQ.BMP',
-        #             '雷阵雨': 'WLZYU.BMP', '小雨': 'WXYU.BMP', '中雨': 'WXYU.BMP'}.get(cw, None)
-        # if not w_bmp:
         w_bmp = 'WDYZQ.BMP'
-
-        if cw == 'Clear':
+        if cw_f == 'Clear':
             w_bmp = 'WQING.BMP'
-        elif cw == 'Cloudy' or cw == 'Overcast':
+        elif cw_f == 'Cloudy' or cw_f == 'Overcast':
             w_bmp = 'WYIN.BMP'
-        elif 'Partly' in cw or 'Mostly' in cw:
+        elif 'Partly' in cw_f or 'Mostly' in cw_f:
             w_bmp = 'WDYZQ.BMP'
-        elif 'Rain' in cw:
+        elif 'Rain' in cw_f:
             w_bmp = 'WYU.BMP'
-        elif 'Drizzle' in cw:
+        elif 'Drizzle' in cw_f:
             w_bmp = 'WXYU.BMP'
-        elif 'Snow' in cw:
+        elif 'Snow' in cw_f:
             w_bmp = 'WXUE.BMP'
-        elif 'Hail' in cw:
+        elif 'Hail' in cw_f:
             w_bmp = 'WBBAO.BMP'
-        elif 'Fog' in cw or 'Haze' in cw:
+        elif 'Fog' in cw_f or 'Haze' in cw_f:
             w_bmp = 'WWU.BMP'
         
-        # if w_bmp:
         self.screen.bitmap(20, 280, w_bmp)
     
     
@@ -122,19 +114,43 @@ class DisplayAll(threading.Thread):
         self.screen.text(300,290, rhumi)
     
     
-    def show_cntdown(self):
-        cntdown = 56
+    def twitter_DM(self):
+        DM = api.direct_messages(count=1,full_text=True) 
+        msg = DM[0].text
+        wrap = textwrap.wrap(msg,26)
+        self.screen.bitmap(420, 250, 'MSG.BMP')
+        self.screen.set_en_font_size(FONT_SIZE_32)
+        self.screen.text(500,250, wrap[0])
+        if len(wrap) > 1:
+            self.screen.text(500,290, wrap[1])
+
+        '''
+        TheDay = datetime.date(2018,06,22)
+        Today  = datetime.date.today()
+        cntdown = (TheDay - Today).days
         self.screen.bitmap(420, 250, 'MSG.BMP')
         self.screen.set_en_font_size(FONT_SIZE_32)
         self.screen.text(500,250, 'There are               days')
         self.screen.text(500,290, 'until going home!')
         self.screen.set_en_font_size(FONT_SIZE_64)
         self.screen.text(650,220, str(cntdown))
-
+        '''
     
     def book_movie(self):
         self.screen.bitmap(250, 350, 'FILM.BMP')
         self.screen.bitmap(250, 450, 'BOOK.BMP')
+
+import textwrap
+import tweepy
+
+consumer_key        = "EnwX69MWlC7btxqIN8vwrxkEG"
+consumer_secret     = "izGyD5qCSdg3lPsDuURpN57Y7VbqW1xWqP0813Vg1HgH2yXBzC"
+access_token        = "972286632677330949-bQuQgj8pxbM6g2XvAli1gxFjbhLcFKi"
+access_token_secret = "Ts8jsVYZmCs4LoMQwfxHZMbU1ctbKGWB3PF0vxHkTtbPO"
+
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
+api = tweepy.API(auth)
 
 Epaper = DisplayAll()
 Epaper.start()
