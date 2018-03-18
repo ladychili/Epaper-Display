@@ -171,7 +171,7 @@ class Screen(object):
         args = struct.pack('>hh', x0, y0)
         if isinstance(text, str):
             text = text.decode('utf-8')
-        args += text.encode('gb2312') + '\x00'
+        args += text.encode('GB18030') + '\x00'
         self._send(self._build_frame(CMD_DRAW_STRING, args))
 
     def wrap_text(self, x0, y0, limit, text, font_size=FONT_SIZE_32, line_space=10):
